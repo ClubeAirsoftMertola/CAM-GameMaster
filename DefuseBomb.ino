@@ -10,34 +10,56 @@ const int buzzerPin = 15;
 const int buttonPin = 14;  // botão no GPIO14
 
 
+unsigned long countdownStart = 0;
+bool countdownDone = false;
 
 
 void setup() {
+  Serial.begin(115200);
+
   setupBuzzer();
   setupButtons();
   setupLCD();
 
-  Serial.begin(115200);
-  Serial.println("Início do loop...");
-
+  //Serial.println("Início do loop...");
   screenFinishBoot();
+
+  delay(1500); //pause
+  showLCDMessage("Arming in:", 0, 0);
+  showLCDMessage("30 seconcs", 0, 1);
+
+  countdownStart = millis(); // começa a contagem
 }
 
 void loop() {
-  Serial.println("Beep!");
+  if (!countdownDone) {
+    unsigned long elapsed = (millis() - countdownStart) / 1000;
+    int remaining = 30 - elapsed;
 
-  digitalWrite(buzzerPin, HIGH);
-  delay(1000);
+    if (remaining >= 0) {
+      // Mostrar apenas o número no segundo linha
+      showLCDMessage("Arming in:", 4, 0);
+      showLCDMessage(String(remaining) + " seconds", 3, 1);
+    }
 
-  digitalWrite(buzzerPin, LOW);
+    if (remaining <= 0) {
+      countdownDone = true;
+      lcd.clear();
+      showLCDMessage("BOMBA ATIVA!", 0, 0);
+      showLCDMessage("30 minutos", 0, 1);
 
-  if (digitalRead(buttonPin) == HIGH) {
-    Serial.println("Botão pressionado!");
-  } else {
-    Serial.println("Botão solto");
+      // Beep de 3 segundos
+      digitalWrite(buzzerPin, HIGH);
+      delay(3000);
+      digitalWrite(buzzerPin, LOW);
+
+      // Proxima fase virá aqui
+    }
   }
-  delay(500);
+
+  delay(200);
 }
+
 
 
 
@@ -50,6 +72,7 @@ void loop() {
 
 void setupBuzzer(){
   pinMode(buzzerPin, OUTPUT);
+  pinMode(buttonPin, INPUT);
 }
 
 
@@ -75,11 +98,14 @@ void setupButtons(){
 ##################################################
 */
 
-void showLCDMessage(String message, byte posX, byte posY){
-  lcd.setCursor(posX, posY); // coluna 0, linha 0
-  lcd.print("                ");  // limpa linha (16 espaços)
-  lcd.setCursor(posX, posY); // coluna 0, linha 0
-  lcd.print(message);
+void showLCDMessage(String message, byte posX, byte posY) {
+  lcd.setCursor(posX, posY);
+  lcd.print("                "); // limpa linha (16 espaços)
+
+  if (message.length() > 0) {
+    lcd.setCursor(posX, posY);
+    lcd.print(message);
+  }
 }
 
 
