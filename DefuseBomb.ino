@@ -7,13 +7,14 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2); // endereço I2C, colunas, linhas
 
 
 const int buzzerPin = 15;
-
+const int buttonPin = 14;  // botão no GPIO14
 
 
 
 
 void setup() {
   setupBuzzer();
+  setupButtons();
   setupLCD();
 
   Serial.begin(115200);
@@ -29,7 +30,13 @@ void loop() {
   delay(1000);
 
   digitalWrite(buzzerPin, LOW);
-  delay(3900);
+
+  if (digitalRead(buttonPin) == HIGH) {
+    Serial.println("Botão pressionado!");
+  } else {
+    Serial.println("Botão solto");
+  }
+  delay(500);
 }
 
 
@@ -49,6 +56,11 @@ void setupBuzzer(){
 void setupLCD(){
   lcd.init();          // Inicializa o LCD
   lcd.backlight();     // Liga a luz de fundo
+}
+
+
+void setupButtons(){
+  pinMode(buttonPin, INPUT);
 }
 
 
