@@ -147,7 +147,19 @@ void checkDisarmButton() {
       buttonPressedMillis = millis();
       buttonHeld = true;
     } else {
-      if (millis() - buttonPressedMillis >= 3000) {
+      unsigned long heldTime = millis() - buttonPressedMillis;
+
+      // Mostrar barra de progresso
+      int totalBlocks = 16;
+      int filledBlocks = map(heldTime, 0, 3000, 0, totalBlocks);
+
+      lcd.setCursor(0, 1);
+      for (int i = 0; i < totalBlocks; i++) {
+        if (i < filledBlocks) lcd.write(255);  // bloco cheio
+        else lcd.print(" ");
+      }
+
+      if (heldTime >= 3000) {
         bombDefused = true;
         gameStarted = false;
         lcd.clear();
@@ -159,9 +171,17 @@ void checkDisarmButton() {
       }
     }
   } else {
+    if (buttonHeld) {
+      // reset da barra
+      lcd.setCursor(0, 1);
+      lcd.print("                ");
+    }
     buttonHeld = false;
   }
 }
+
+
+
 
 /**
 ##################################################
