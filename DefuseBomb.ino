@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x3F, 16, 2); // endereço I2C, colunas, linhas
+LiquidCrystal_I2C lcd(0x3F, 16, 2); // Endereço I2C do LCD
 
 const int buzzerPin = 15;
 const int buttonPin = 14;
@@ -11,6 +11,11 @@ bool countdownDone = false;
 bool gameStarted = false;
 unsigned long gameStartMillis = 0;
 unsigned long lastBeepMillis = 0;
+
+// Para o botão
+unsigned long buttonPressedMillis = 0;
+bool buttonHeld = false;
+bool bombDefused = false;
 
 void setup() {
   Serial.begin(115200);
@@ -34,8 +39,8 @@ void loop() {
     int remaining = 5 - elapsed;
 
     if (remaining >= 0) {
-      showLCDMessage("Arming in:", 4, 0);
-      showLCDMessage(String(remaining) + " seconds", 3, 1);
+      showLCDMessage("Arming in:", 0, 0);
+      showLCDMessage(String(remaining) + " seconds", 0, 1);
     }
 
     if (remaining <= 0) {
@@ -53,13 +58,11 @@ void loop() {
     }
   }
 
-  if (gameStarted) {
+  if (gameStarted && !bombDefused) {
     updateGameCountdown();
+    checkDisarmButton();
   }
-
-  delay(200);
 }
-
 
 /**
 ##################################################
@@ -69,7 +72,6 @@ void loop() {
 
 void setupBuzzer(){
   pinMode(buzzerPin, OUTPUT);
-  pinMode(buttonPin, INPUT);
 }
 
 void setupLCD(){
@@ -78,9 +80,8 @@ void setupLCD(){
 }
 
 void setupButtons(){
-  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin, INPUT); // botão vai a GND -> valor LOW
 }
-
 
 /**
 ##################################################
@@ -90,7 +91,7 @@ void setupButtons(){
 
 void showLCDMessage(String message, byte posX, byte posY) {
   lcd.setCursor(posX, posY);
-  lcd.print("                ");
+  lcd.print("                "); // limpa linha
   if (message.length() > 0) {
     lcd.setCursor(posX, posY);
     lcd.print(message);
@@ -118,9 +119,10 @@ void updateGameCountdown() {
 
     unsigned long now = millis();
 
-    // Controlar beeps progressivos
-    int interval = 60000; // 1 min default
-    if (remaining <= 60 && remaining > 30) interval = 15000;
+    // Beep intervalos progressivos
+    int interval = 60000;
+    if (remaining <= 300 && remaining > 60) interval = 30000;
+    else if (remaining <= 60 && remaining > 30) interval = 15000;
     else if (remaining <= 30 && remaining > 5) interval = 5000;
     else if (remaining <= 5) interval = 1000;
 
@@ -128,6 +130,7 @@ void updateGameCountdown() {
       lastBeepMillis = now;
       beepBuzzer(2000);
     }
+
   } else {
     gameStarted = false;
     lcd.clear();
@@ -136,10 +139,33 @@ void updateGameCountdown() {
   }
 }
 
+void checkDisarmButton() {
+  int buttonState = digitalRead(buttonPin);
+
+  if (buttonState == HIGH) {
+    if (!buttonHeld) {
+      buttonPressedMillis = millis();
+      buttonHeld = true;
+    } else {
+      if (millis() - buttonPressedMillis >= 3000) {
+        bombDefused = true;
+        gameStarted = false;
+        lcd.clear();
+        showLCDMessage("BOMBA DESARMADA", 0, 0);
+        showLCDMessage("CT WIN", 5, 1);
+        beepBuzzer(500);
+        delay(500);
+        beepBuzzer(500);
+      }
+    }
+  } else {
+    buttonHeld = false;
+  }
+}
 
 /**
 ##################################################
-##               MENSSAGES                      ##
+##               MENSAGENS                      ##
 ##################################################
 */
 
