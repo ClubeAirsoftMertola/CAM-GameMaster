@@ -1,6 +1,27 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+
+/*
+  CONECTIONS ==================> ESP32
+
+  LCD   
+    GND ........................ GND
+    VCC ........................ Vin (5v)
+    SDA ........................ 21
+    SCL ........................ 22
+
+  BUZZER
+    GND ........................ GND
+    +  ......................... 15
+
+  Button (desarmar)
+    Um lado .................... 14
+    Lado oposto ................ GND (+ resistor)
+
+
+*/
+
 LiquidCrystal_I2C lcd(0x3F, 16, 2); // Endereço I2C do LCD
 
 const int buzzerPin = 15;
