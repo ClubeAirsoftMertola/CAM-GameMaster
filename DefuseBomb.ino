@@ -10,12 +10,15 @@ unsigned long countdownStart = 0;
 bool countdownDone = false;
 bool gameStarted = false;
 unsigned long gameStartMillis = 0;
-unsigned long lastBeepMillis = 0;
 
-// Para o botão
+// Botão
 unsigned long buttonPressedMillis = 0;
 bool buttonHeld = false;
 bool bombDefused = false;
+
+// Evitar flicker
+String lastTimeDisplayed = "";
+int lastRemainingArming = -1;
 
 void setup() {
   Serial.begin(115200);
@@ -38,7 +41,8 @@ void loop() {
     unsigned long elapsed = (millis() - countdownStart) / 1000;
     int remaining = 5 - elapsed;
 
-    if (remaining >= 0) {
+    if (remaining != lastRemainingArming && remaining >= 0) {
+      lastRemainingArming = remaining;
       showLCDMessage("Arming in:", 0, 0);
       showLCDMessage(String(remaining) + " seconds", 0, 1);
     }
@@ -48,13 +52,16 @@ void loop() {
       lcd.clear();
       showLCDMessage("BOMBA ATIVA!", 0, 0);
 
-      // Beep 3s
+      // Beep de 3 segundos
       digitalWrite(buzzerPin, HIGH);
       delay(3000);
       digitalWrite(buzzerPin, LOW);
 
       gameStartMillis = millis();
       gameStarted = true;
+
+      lcd.setCursor(0, 0);
+      lcd.print("Tempo restante:");
     }
   }
 
@@ -71,6 +78,7 @@ void loop() {
 */
 
 void setupBuzzer(){
+  digitalWrite(buzzerPin, LOW);
   pinMode(buzzerPin, OUTPUT);
 }
 
@@ -82,6 +90,7 @@ void setupLCD(){
 void setupButtons(){
   pinMode(buttonPin, INPUT); // botão vai a GND -> valor LOW
 }
+
 
 /**
 ##################################################
@@ -98,15 +107,32 @@ void showLCDMessage(String message, byte posX, byte posY) {
   }
 }
 
+void showLCDTime(String timeStr) {
+  if (timeStr != lastTimeDisplayed) {
+    lcd.setCursor(4, 1);
+    lcd.print("        "); // limpa o tempo
+    lcd.setCursor(4, 1);
+    lcd.print(timeStr);
+    lastTimeDisplayed = timeStr;
+  }
+}
+
 void beepBuzzer(int duration) {
   digitalWrite(buzzerPin, HIGH);
   delay(duration);
   digitalWrite(buzzerPin, LOW);
 }
 
+void blinkLCD() {
+  static bool state = false;
+  state = !state;
+  if (state) lcd.noBacklight();
+  else lcd.backlight();
+}
+
 void updateGameCountdown() {
   unsigned long elapsed = (millis() - gameStartMillis) / 1000;
-  int remaining = 30 * 60 - elapsed;
+  int remaining = 20 * 60 - elapsed; // 20 minutos
 
   if (remaining >= 0) {
     int minutes = remaining / 60;
@@ -114,28 +140,17 @@ void updateGameCountdown() {
 
     char timeBuffer[9];
     sprintf(timeBuffer, "%02d:%02d", minutes, seconds);
-    showLCDMessage("Tempo restante:", 0, 0);
-    showLCDMessage(String(timeBuffer), 4, 1);
-
-    unsigned long now = millis();
-
-    // Beep intervalos progressivos
-    int interval = 60000;
-    if (remaining <= 300 && remaining > 60) interval = 30000;
-    else if (remaining <= 60 && remaining > 30) interval = 15000;
-    else if (remaining <= 30 && remaining > 5) interval = 5000;
-    else if (remaining <= 5) interval = 1000;
-
-    if (now - lastBeepMillis >= interval) {
-      lastBeepMillis = now;
-      beepBuzzer(2000);
-    }
-
+    showLCDTime(String(timeBuffer));
   } else {
     gameStarted = false;
     lcd.clear();
     showLCDMessage("BOMB EXPLODED", 1, 0);
     digitalWrite(buzzerPin, HIGH); // Beep contínuo
+
+    while (true) {
+      blinkLCD();
+      delay(300);
+    }
   }
 }
 
@@ -149,13 +164,13 @@ void checkDisarmButton() {
     } else {
       unsigned long heldTime = millis() - buttonPressedMillis;
 
-      // Mostrar barra de progresso
+      // Barra de progresso
       int totalBlocks = 16;
       int filledBlocks = map(heldTime, 0, 3000, 0, totalBlocks);
 
       lcd.setCursor(0, 1);
       for (int i = 0; i < totalBlocks; i++) {
-        if (i < filledBlocks) lcd.write(255);  // bloco cheio
+        if (i < filledBlocks) lcd.write(255);
         else lcd.print(" ");
       }
 
@@ -172,15 +187,12 @@ void checkDisarmButton() {
     }
   } else {
     if (buttonHeld) {
-      // reset da barra
       lcd.setCursor(0, 1);
       lcd.print("                ");
     }
     buttonHeld = false;
   }
 }
-
-
 
 
 /**
