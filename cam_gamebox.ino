@@ -34,6 +34,12 @@
 
 
 // =========================
+// BUZZER
+// =========================
+#define BUZZER 13
+
+
+// =========================
 // RGB LED    (+ Ω220 resistor)
 // =========================
 #define LED_R 25
@@ -59,6 +65,7 @@ void setup() {
 
   setupLed();
   setupButtons();
+  setupBuzzer();
   setupOLEDScreen();
   
 }
@@ -130,6 +137,10 @@ void setupLed(){
 void setupButtons(){
   pinMode(BTN_BLUE, INPUT_PULLUP);
   pinMode(BTN_RED, INPUT_PULLUP);
+}
+
+void setupBuzzer(){
+  pinMode(BUZZER, OUTPUT);
 }
 
 
