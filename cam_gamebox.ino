@@ -3,11 +3,38 @@
 #include <Adafruit_SH110X.h>
 
 
+/*
+  PIN         CONNECT TO                 PIN           CONNECTED TO
+-----------------------------------|--------------------------------
+  EN                               |     D23             RFID_MOSI
+  VP                               |     D22             OLED_SCL
+  VIN ---------------------------  |     TX0
+  D34                              |     RX0
+  D35                              |     D21             OLED_SDA
+  D32    RFID_MISO                 |     D19
+  D33    RFID_RESET                |     D18             BTN_BLUE
+  D25    LED_R                     |     D5              BTN_RED
+  D26    LED_G                     |     TX2
+  D27    LED_B                     |     RX2
+  D14    RFID_SCK                  |     D4              RFID_SDA
+  D12                              |     D2
+  D13    BUZZER                    |     D15
+  
+  VIN    LiPO Battery Power Reducer
+  3.3V   OLED VDD, RFID
+*/
 
 
 
 // =========================
-// RGB LED
+// BUTTONS
+// =========================
+#define BTN_RED 5
+#define BTN_BLUE 18
+
+
+// =========================
+// RGB LED    (+ Ω220 resistor)
 // =========================
 #define LED_R 25
 #define LED_G 26
@@ -30,8 +57,10 @@ void setup() {
 
   Serial.begin(115200);
 
-  setupOLEDScreen();
   setupLed();
+  setupButtons();
+  setupOLEDScreen();
+  
 }
 
 void loop() {
@@ -54,6 +83,7 @@ void setupOLEDScreen(){
   if(!display.begin(0x3C, true)) {
 
     Serial.println("OLED FAIL");
+    setColor(true, false, false);
 
     while(1);
   }
@@ -95,6 +125,11 @@ void setupLed(){
   digitalWrite(LED_R, LOW);
   digitalWrite(LED_G, LOW);
   digitalWrite(LED_B, LOW);
+}
+
+void setupButtons(){
+  pinMode(BTN_BLUE, INPUT_PULLUP);
+  pinMode(BTN_RED, INPUT_PULLUP);
 }
 
 
